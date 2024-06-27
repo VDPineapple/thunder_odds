@@ -16,8 +16,8 @@ fn main() {
     // CHANGE THESE VALUES
     let cutoff = 300 * MINUTES;
     let record_interval = 10 * MINUTES;
-    let min_thunder_duration = 1 * MINUTES;
-    let earliest_thunder = 35 * MINUTES;
+    let min_thunder_duration = 0 * MINUTES;
+    let earliest_thunder = 0 * MINUTES;
     let iterations = 1000000;
 
     // DON'T CHANGE THESE VALUES
@@ -48,9 +48,19 @@ fn main() {
                 rain_start = 0;
 
                 if thunder_start != 0 {
-                    if (time - thunder_start) > min_thunder_duration && time >= earliest_thunder {
-                        // For all intervals above time, add one to the corresponding index in the thunders vector
-                        for i in (time / record_interval)..thunders.len() {
+                    // Only thunders that finish after the earliest_thunder, and last
+                    // at least min_thunder_duration after the earliest_thunder are counted
+                    if (time - thunder_start) > min_thunder_duration && time >= earliest_thunder + min_thunder_duration {
+                        // If the thunder starts before the earliest_thunder, it is counted as starting at the earliest_thunder
+                        let recording_time = if time >= earliest_thunder + min_thunder_duration {
+                            thunder_start + min_thunder_duration
+                        } else {
+                            earliest_thunder + min_thunder_duration
+                        };
+                        // Only thunders that last longer than min_thunder_duration WITHIN each interval are counted
+                        // Therefore, if the min_thunder_duration is 2 minutes, and the thunder starts at 1:59, 
+                        // it will not be counted for a 2:00 interval.
+                        for i in (recording_time / record_interval)..thunders.len() {
                             if !has_thundered[i] {
                                 thunders[i] += 1;
                                 has_thundered[i] = true;
@@ -70,9 +80,15 @@ fn main() {
                 is_thundering = false;
                 thunder = rand::thread_rng().gen_range(10*MINUTES..150*MINUTES);
                 if thunder_start != 0 {
-                    if (time - thunder_start) > min_thunder_duration && time >= earliest_thunder {
-                        // For all intervals above time, add one to the corresponding index in the thunders vector
-                        for i in (time / record_interval)..thunders.len() {
+                    
+                    if (time - thunder_start) > min_thunder_duration && time >= earliest_thunder + min_thunder_duration {
+                        let recording_time = if time >= earliest_thunder + min_thunder_duration {
+                            thunder_start + min_thunder_duration
+                        } else {
+                            earliest_thunder + min_thunder_duration
+                        };
+                        // For all relevant intervals, add one to the corresponding index in the thunders vector
+                        for i in (recording_time / record_interval)..thunders.len() {
                             if !has_thundered[i] {
                                 thunders[i] += 1;
                                 has_thundered[i] = true;
